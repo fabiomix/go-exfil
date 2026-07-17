@@ -1,0 +1,16 @@
+exit_on_error: false         # true = stop at the first failed transfer, false = continue
+overwrite: true              # true = always overwrite, false = skip if the remote file exists
+
+sftp:
+  host: "sftp.example.com"
+  port: 22
+  user: "username"
+  password: "secretw0rd"     # optional, leave empty to use private key authentication
+  key_file: ""               # path to private key file, leave empty to use password authentication
+  only_known_hosts: false    # true = verify the server against ~/.ssh/known_hosts
+
+files:
+  - local: "/srv/exports/sales_report.csv"
+    remote: "/incoming/sales_report_example_com.csv"
+  - local: "/var/log/your_app/app.log"
+    remote: "/incoming/app.log"
