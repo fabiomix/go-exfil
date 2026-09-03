@@ -1,7 +1,5 @@
 # Exfil
-Golang CLI that uploads local files to a remote SFTP server.  Useful for unattended file
-transfers like backups, log shipping or taking out files from customer on-premise servers
-to feed their own cloud data pipelines.
+Golang CLI that uploads local files to a remote SFTP server.
 
 ## Features
 - Uploads files to a remote SFTP server
