@@ -28,14 +28,14 @@ GOOS=linux GOARCH=arm go build -o exfil .
 ## Usage
 Command line parameters:
 ```bash
-./exfil                         # reads config.yaml next to the executable then starts uploading files
+./exfil                         # reads default.yaml next to the executable then starts uploading files
 ./exfil --config /path/to/file  # alternative config file (also -c)
 ./exfil --dry-run               # check the SFTP connection and local files, doesn't transfer anything
 ```
 
 ## Configuration
-The configuration file is in YAML format. See `config.example.yaml` for a sample configuration.
-By default the script looks for `config.yaml` in the same directory as the executable.
+The configuration file is in YAML format. See `default.example.yaml` for a sample configuration.
+By default the script looks for `default.yaml` in the same directory as the executable.
 A different file can be passed with `--config` or simply `-c`.
 
 ## Authentication
