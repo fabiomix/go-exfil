@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -71,10 +72,52 @@ func loadConfig(path string) (*AppConfig, error) {
 		return nil, err
 	}
 
+	cfg.resolveLocalPaths(filepath.Dir(path))
 	return &cfg, nil
 }
 
-func defaultConfigPath() string {
-	// TODO: get the default.yaml path in the same path as the executable, not the current working directory
-	return filepath.Join(filepath.Dir(os.Args[0]), "default.yaml")
+// Check and convert relative paths to absolute paths
+func (cfg *AppConfig) resolveLocalPaths(baseDir string) {
+	for idx, file := range cfg.Files {
+		if !filepath.IsAbs(file.Local) {
+			cfg.Files[idx].Local = filepath.Join(baseDir, file.Local)
+		}
+	}
+}
+
+// Get the config file to load
+func resolveConfigPath(cliPath string) (string, error) {
+	var defaultConfigName = "default.yaml"
+	var candidates []string
+
+	// Specific config path given on the command line always wins
+	if cliPath != "" {
+		return filepath.Abs(cliPath)
+	}
+
+	// Search for default.yaml next to the executable
+	if exePath, err := os.Executable(); err == nil {
+		if exePath, err = filepath.EvalSymlinks(exePath); err == nil {
+			candidates = append(candidates, filepath.Join(filepath.Dir(exePath), defaultConfigName))
+		}
+	}
+
+	// Search for default.yaml in the current directory, useful when running from source.
+	// With "go run" the executable is in a temp directory...
+	if cwd, err := os.Getwd(); err == nil {
+		cwdPath := filepath.Join(cwd, defaultConfigName)
+		if len(candidates) == 0 || candidates[0] != cwdPath {
+			candidates = append(candidates, cwdPath)
+		}
+	}
+
+	// Find the first candidate that exists
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
+	}
+
+	// No valid config file found
+	return "", fmt.Errorf("%s not found, searched:\n  - %s", defaultConfigName, strings.Join(candidates, "\n  - "))
 }

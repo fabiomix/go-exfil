@@ -17,8 +17,10 @@ func main() {
 	flag.Parse()
 
 	// Configuration file path is optional
-	if configPath == "" {
-		configPath = defaultConfigPath()
+	configPath, err := resolveConfigPath(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Load the configuration
