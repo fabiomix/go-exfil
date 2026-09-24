@@ -9,9 +9,14 @@ import (
 	"github.com/pkg/sftp"
 )
 
+// Status code and labels for upload results
+const StatusOK string = "OK"
+const StatusSkipped string = "SKIP"
+const StatusFailed string = "ERR"
+
 type UploadResult struct {
 	FileEntry FileEntry // or local+remote as strings
-	Ok        bool
+	Status    string
 	Message   string
 }
 
@@ -28,14 +33,14 @@ func dryRunMode(cfg *AppConfig) ([]UploadResult, error) {
 		res := UploadResult{FileEntry: file}
 		fp, err := os.Stat(file.Local)
 		if err != nil {
-			res.Ok = false
+			res.Status = StatusFailed
 			res.Message = fmt.Sprintf("files[%d].local: %v", idx, err)
 		} else if fp.IsDir() {
-			res.Ok = false
+			res.Status = StatusFailed
 			res.Message = fmt.Sprintf("files[%d].local: is a directory", idx)
 		} else {
-			res.Ok = true
-			res.Message = "OK"
+			res.Status = StatusOK
+			res.Message = ""
 		}
 		results = append(results, res)
 	}
@@ -61,7 +66,7 @@ func transferMode(cfg *AppConfig) ([]UploadResult, error) {
 	for _, file := range cfg.Files {
 		res := sendFile(sftpClient, file, cfg.Overwrite)
 		results = append(results, res)
-		if !res.Ok && cfg.ExitOnError {
+		if res.Status == StatusFailed && cfg.ExitOnError {
 			break
 		}
 	}
@@ -76,10 +81,8 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	if !overwrite {
 		remoteStat, err := client.Stat(file.Remote)
 		if err == nil && remoteStat != nil {
-			// TODO: when file already exists and overwrite is false, res.Ok should be true or false?
-			// It also depends on cfg.ExitOnError, because skipped files are not errors when overwrite is false
-			res.Ok = false
-			res.Message = "skipped (remote file exists)"
+			res.Status = StatusSkipped
+			res.Message = "remote file exists"
 			return res
 		}
 	}
@@ -87,7 +90,7 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	// Read the local file
 	sourceFile, err := os.Open(file.Local)
 	if err != nil {
-		res.Ok = false
+		res.Status = StatusFailed
 		res.Message = fmt.Sprintf("opening local file: %v", err)
 		return res
 	}
@@ -96,7 +99,7 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	// Create the remote directory if it doesn't exist
 	err = client.MkdirAll(filepath.Dir(file.Remote))
 	if err != nil {
-		res.Ok = false
+		res.Status = StatusFailed
 		res.Message = fmt.Sprintf("creating remote directory: %v", err)
 		return res
 	}
@@ -105,7 +108,7 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	// sftp.Create always truncates an existing file!
 	destFile, err := client.Create(file.Remote)
 	if err != nil {
-		res.Ok = false
+		res.Status = StatusFailed
 		res.Message = fmt.Sprintf("creating remote file: %v", err)
 		return res
 	}
@@ -114,13 +117,13 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	// Copy the contents of the local file to the remote file
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
-		res.Ok = false
+		res.Status = StatusFailed
 		res.Message = fmt.Sprintf("copying file: %v", err)
 		return res
 	}
 
 	// Everything went well
-	res.Ok = true
+	res.Status = StatusOK
 	res.Message = ""
 	return res
 }

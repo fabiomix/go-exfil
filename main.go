@@ -53,24 +53,39 @@ func main() {
 
 	// Print the results of the file transfers
 	// TODO: print results after each file transfer, not at the end, to provide real-time feedback
-	failed := 0
+	okCount, skippedCount, failedCount := 0, 0, 0
 	for _, res := range results {
-		if res.Ok {
-			fmt.Printf(" [OK]  %s  ->  %s\n", res.FileEntry.Local, res.FileEntry.Remote)
+		label := fmt.Sprintf("%-6s", "["+res.Status+"]")
+		if res.Message == "" {
+			fmt.Printf(" %s %s  ->  %s\n", label, res.FileEntry.Local, res.FileEntry.Remote)
 		} else {
-			fmt.Printf(" [ERR] %s  ->  %s: %s\n", res.FileEntry.Local, res.FileEntry.Remote, res.Message)
-			failed++
+			fmt.Printf(" %s %s  ->  %s: %s\n", label, res.FileEntry.Local, res.FileEntry.Remote, res.Message)
+		}
+
+		switch res.Status {
+		case StatusOK:
+			okCount++
+		case StatusSkipped:
+			skippedCount++
+		case StatusFailed:
+			failedCount++
+		default:
+			failedCount++
 		}
 	}
 
-	summary := fmt.Sprintf("Results: ok=%d, failed=%d, total=%d", len(results)-failed, failed, len(cfg.Files))
+	// Files never attempted (in case of exit_on_error)
+	notAttempted := len(cfg.Files) - len(results)
+	skippedCount += notAttempted
+
+	summary := fmt.Sprintf("Results: total=%d, ok=%d, skipped=%d, failed=%d", len(cfg.Files), okCount, skippedCount, failedCount)
 	if isDryRun {
 		summary += " (dry-run mode, no files were transferred)"
 	}
 	fmt.Printf("\n%s\n", summary)
 
 	// Exit code based on the number of failed transfers
-	if failed > 0 {
+	if failedCount > 0 {
 		os.Exit(3)
 	} else {
 		os.Exit(0)
