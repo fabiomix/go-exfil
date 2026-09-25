@@ -20,6 +20,16 @@ type UploadResult struct {
 	Message   string
 }
 
+// Print the result of the file transfer
+func printResult(res UploadResult) {
+	label := fmt.Sprintf("%-6s", "["+res.Status+"]")
+	if res.Message == "" {
+		fmt.Printf(" %s %s  ->  %s\n", label, res.FileEntry.Local, res.FileEntry.Remote)
+	} else {
+		fmt.Printf(" %s %s  ->  %s: %s\n", label, res.FileEntry.Local, res.FileEntry.Remote, res.Message)
+	}
+}
+
 func dryRunMode(cfg *AppConfig) ([]UploadResult, error) {
 	results := make([]UploadResult, 0, len(cfg.Files))
 
@@ -28,6 +38,7 @@ func dryRunMode(cfg *AppConfig) ([]UploadResult, error) {
 		return nil, err
 	}
 	defer sshClient.Close()
+	fmt.Printf("Successfully connected to %s:%d (user: %s)\n\n", cfg.SFTP.Host, cfg.SFTP.Port, cfg.SFTP.User)
 
 	for idx, file := range cfg.Files {
 		res := UploadResult{FileEntry: file}
@@ -42,6 +53,7 @@ func dryRunMode(cfg *AppConfig) ([]UploadResult, error) {
 			res.Status = StatusOK
 			res.Message = ""
 		}
+		printResult(res)
 		results = append(results, res)
 	}
 
@@ -62,9 +74,11 @@ func transferMode(cfg *AppConfig) ([]UploadResult, error) {
 		return nil, err
 	}
 	defer sftpClient.Close()
+	fmt.Printf("Successfully connected to %s:%d (user: %s)\n\n", cfg.SFTP.Host, cfg.SFTP.Port, cfg.SFTP.User)
 
 	for _, file := range cfg.Files {
 		res := sendFile(sftpClient, file, cfg.Overwrite)
+		printResult(res)
 		results = append(results, res)
 		if res.Status == StatusFailed && cfg.ExitOnError {
 			break

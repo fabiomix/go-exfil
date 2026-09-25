@@ -47,21 +47,11 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(2)
-	} else {
-		fmt.Printf("Successfully connected to %s:%d (user: %s)\n\n", cfg.SFTP.Host, cfg.SFTP.Port, cfg.SFTP.User)
 	}
 
-	// Print the results of the file transfers
-	// TODO: print results after each file transfer, not at the end, to provide real-time feedback
+	// Count the results by state
 	okCount, skippedCount, failedCount := 0, 0, 0
 	for _, res := range results {
-		label := fmt.Sprintf("%-6s", "["+res.Status+"]")
-		if res.Message == "" {
-			fmt.Printf(" %s %s  ->  %s\n", label, res.FileEntry.Local, res.FileEntry.Remote)
-		} else {
-			fmt.Printf(" %s %s  ->  %s: %s\n", label, res.FileEntry.Local, res.FileEntry.Remote, res.Message)
-		}
-
 		switch res.Status {
 		case StatusOK:
 			okCount++
