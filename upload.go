@@ -76,8 +76,12 @@ func transferMode(cfg *AppConfig) ([]UploadResult, error) {
 	defer sftpClient.Close()
 	fmt.Printf("Successfully connected to %s:%d (user: %s)\n\n", cfg.SFTP.Host, cfg.SFTP.Port, cfg.SFTP.User)
 
+	// Save remote directories (created or already existing), used to skip
+	// unnecessary MkdirAll calls on every loop.
+	cacheDirs := make(map[string]bool)
+
 	for _, file := range cfg.Files {
-		res := sendFile(sftpClient, file, cfg.Overwrite)
+		res := sendFile(sftpClient, file, cfg.Overwrite, cacheDirs)
 		printResult(res)
 		results = append(results, res)
 		if res.Status == StatusFailed && cfg.ExitOnError {
@@ -88,13 +92,15 @@ func transferMode(cfg *AppConfig) ([]UploadResult, error) {
 	return results, nil
 }
 
-func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult {
+func sendFile(client *sftp.Client, file FileEntry, overwrite bool, cacheDirs map[string]bool) UploadResult {
+	remoteDir := filepath.Dir(file.Remote)
 	res := UploadResult{FileEntry: file}
 
 	// When overwrite is false, check if the remote file exists
 	if !overwrite {
 		remoteStat, err := client.Stat(file.Remote)
 		if err == nil && remoteStat != nil {
+			cacheDirs[remoteDir] = true // if file exists, the directory exists too
 			res.Status = StatusSkipped
 			res.Message = "remote file exists"
 			return res
@@ -111,11 +117,14 @@ func sendFile(client *sftp.Client, file FileEntry, overwrite bool) UploadResult 
 	defer sourceFile.Close()
 
 	// Create the remote directory if it doesn't exist
-	err = client.MkdirAll(filepath.Dir(file.Remote))
-	if err != nil {
-		res.Status = StatusFailed
-		res.Message = fmt.Sprintf("creating remote directory: %v", err)
-		return res
+	if !cacheDirs[remoteDir] {
+		err = client.MkdirAll(remoteDir)
+		if err != nil {
+			res.Status = StatusFailed
+			res.Message = fmt.Sprintf("creating remote directory: %v", err)
+			return res
+		}
+		cacheDirs[remoteDir] = true
 	}
 
 	// Touch the remote file
