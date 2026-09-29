@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"path"
 
 	"github.com/pkg/sftp"
 )
@@ -93,7 +93,7 @@ func transferMode(cfg *AppConfig) ([]UploadResult, error) {
 }
 
 func sendFile(client *sftp.Client, file FileEntry, overwrite bool, cacheDirs map[string]bool) UploadResult {
-	remoteDir := filepath.Dir(file.Remote)
+	remoteDir := path.Dir(file.Remote)
 	res := UploadResult{FileEntry: file}
 
 	// When overwrite is false, check if the remote file exists
