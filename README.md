@@ -31,6 +31,7 @@ Command line parameters:
 ./exfil                         # reads default.yaml next to the executable then starts uploading files
 ./exfil --config /path/to/file  # alternative config file (also -c)
 ./exfil --dry-run               # check the SFTP connection and local files, doesn't transfer anything
+./exfil --version               # print the version
 ```
 
 ## Configuration

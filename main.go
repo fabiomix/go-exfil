@@ -4,17 +4,66 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/debug"
 )
+
+// Set at build time by the release workflow (-ldflags "-X main.version=<tag>")
+var version = "dev"
+
+// Compose the version string as "version (commit[-dirty])"
+func buildVersion() string {
+	info, ok := debug.ReadBuildInfo()
+
+	// No metadata available
+	if !ok {
+		return version
+	}
+
+	// Get commit hash and local changes
+	revision, modified := "", false
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			revision = s.Value
+		case "vcs.modified":
+			modified = s.Value == "true"
+		}
+	}
+
+	// No commit hash available
+	if revision == "" {
+		return version
+	}
+
+	// Truncate the commit hash to 7 characters
+	if len(revision) > 7 {
+		revision = revision[:7]
+	}
+
+	// Append "-dirty" if there are local changes
+	if modified {
+		revision += "-dirty"
+	}
+
+	return fmt.Sprintf("%s (%s)", version, revision)
+}
 
 func main() {
 	var configPath string
 	var isDryRun bool
+	var showVersion bool
 
 	// Define command-line flags
 	flag.StringVar(&configPath, "config", "", "Path to the configuration file")
 	flag.StringVar(&configPath, "c", "", "Path to the configuration file (alias for --config)")
 	flag.BoolVar(&isDryRun, "dry-run", false, "Perform a dry run without transferring files")
+	flag.BoolVar(&showVersion, "version", false, "Print the version and exit")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println(buildVersion())
+		os.Exit(0)
+	}
 
 	// Configuration file path is optional
 	configPath, err := resolveConfigPath(configPath)

@@ -19,5 +19,7 @@
 
 !default.example.yaml
 
+!/.github/workflows/*.yml
+
 # ...even if they are in subdirectories
 !*/
