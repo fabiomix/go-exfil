@@ -7,45 +7,17 @@ import (
 	"runtime/debug"
 )
 
-// Set at build time by the release workflow (-ldflags "-X main.version=<tag>")
-var version = "dev"
-
-// Compose the version string as "version (commit[-dirty])"
+// Version embedded by go-build from git, as "semver[+dirty]" when built
+// from a tagged commit, "semver-date-commit[+dirty]" otherwise
 func buildVersion() string {
 	info, ok := debug.ReadBuildInfo()
 
 	// No metadata available
 	if !ok {
-		return version
+		return "unknown"
 	}
 
-	// Get commit hash and local changes
-	revision, modified := "", false
-	for _, s := range info.Settings {
-		switch s.Key {
-		case "vcs.revision":
-			revision = s.Value
-		case "vcs.modified":
-			modified = s.Value == "true"
-		}
-	}
-
-	// No commit hash available
-	if revision == "" {
-		return version
-	}
-
-	// Truncate the commit hash to 7 characters
-	if len(revision) > 7 {
-		revision = revision[:7]
-	}
-
-	// Append "-dirty" if there are local changes
-	if modified {
-		revision += "-dirty"
-	}
-
-	return fmt.Sprintf("%s (%s)", version, revision)
+	return info.Main.Version
 }
 
 func main() {

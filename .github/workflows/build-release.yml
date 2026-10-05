@@ -25,11 +25,10 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: "0"
-          LDFLAGS: -s -w -X main.version=${{ github.ref_name }}
         run: |
           mkdir dist
-          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o dist/exfil-linux-amd64 .
-          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o dist/exfil-windows-amd64.exe .
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o dist/exfil-linux-amd64 .
+          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o dist/exfil-windows-amd64.exe .
 
       - name: Release
         env:

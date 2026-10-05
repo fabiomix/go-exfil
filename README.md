@@ -10,6 +10,10 @@ Golang CLI that uploads local files to a remote SFTP server.
 - Cross-platform: Linux, Windows, macOS
 - Single binary with no external dependencies
 
+## Download
+Prebuilt binaries for `linux-amd64` and `windows-amd64` are attached
+to each GitHub Release.
+
 ## Requirements
 - Go 1.25 or later
 
